@@ -396,7 +396,6 @@ class HipodromoController extends Controller{
     //Obtiene todas las Carreras de un Hipodromo
     public function show_carreras(Request $request, $id){
 
-        var_dump($id);
         if(auth()->user()->rol_id == 1){
 
             $validator = "";

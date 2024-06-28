@@ -5,6 +5,9 @@ use Illuminate\Http\Request;
 use App\Models\Jugadas;
 use App\Models\Hipodromo;
 use App\Models\Tipo_apuesta;
+use App\Models\Carrera;
+use App\Models\Caballo;
+use App\Models\Subasta;
 use Illuminate\Support\Facades\DB;
 
 class JugadasController extends Controller{
@@ -130,6 +133,69 @@ class JugadasController extends Controller{
                     $new_jugada->tipo_apuesta_id = $request->tipo_apuesta_id;
 
                     if($new_jugada->save()){
+
+                        //Si la Jugada es Subasta, se busca si hay carreras activas y se crea la Subasta y los Caballos Subastados
+                        $tipo_jugada = Tipo_apuesta::Where('activo', '=', 1)->Where('name', '=', "Subasta")->first();
+
+                        if($tipo_jugada != null && $tipo_jugada->id == $request->tipo_apuesta_id){
+
+                            $carreras_x_subasta = Carrera::Where('hipodromo_id', $request->hipodromo_id)
+                                                ->where('borrada', '=', 0)
+                                                ->where('activa', '=', 1)
+                                                ->select('carrera.id')
+                                                ->pluck('id');
+                                           
+                            //Se buscan los ID de las Carreras que pertenecen a ese Hipodromo
+                            if(count($carreras_x_subasta) > 0){ 
+                                foreach ($carreras_x_subasta as $id_Carrera) {
+                                    $subasta = Subasta::Where('carrera_id', '=', $id_Carrera)
+                                                        ->where('activa', '=', 1)                            
+                                                        ->first();
+
+                                    //Si no existe el registro para la subasta. se crea
+                                    if(is_null($subasta)){
+                                        $new_subasta = new Subasta;
+                                        $new_subasta->carrera_id = $id_Carrera;
+                                        $new_subasta->save();
+                                    }else{
+                                        //Se buscan los caballos de esa carrera
+                                        $array_caballos = Caballo::Where('carrera_id', $id_Carrera)
+                                                            ->where('borrado', '=', 0)
+                                                            ->where('activo', '=', 1)
+                                                            ->select('caballo.id')
+                                                            ->pluck('id');
+
+                                        //Si la carrera tiene caballos registrados, sumamos 5 bs al total
+                                        if(count($array_caballos) > 0){
+                                            
+                                            foreach ($array_caballos as $id_Caballo) {
+
+                                                $subasta->total += 5;
+                                                $porcentaje_resta = round((($subasta->total * $subasta->porcentaje) / 100), 2);
+                                                $subasta->premio = round(($subasta->total - $porcentaje_resta), 2);
+                                                $subasta->save();
+
+                                                $new_caballo_subastado = new Caballo_subastado;
+                                                $new_caballo_subastado->monto_subastado = 5;
+                                                $new_caballo_subastado->subasta_id = $subasta->id;
+                                                $new_caballo_subastado->caballo_id = $id_Caballo;
+
+                                                //Obtener el ID del Rol Admin para asignarselo al caballo subastado
+                                                $rol_admin = Rol::where('name',"Admin")->where('activo', '=', 1)->first();
+                                                if($rol_admin != null){
+                                                    $user_admin = User::Where('activo', '=', 1)->Where('rol_id', '=', $rol_admin->id)->first();
+                                                    
+                                                    $new_caballo_subastado->user_id = $user_admin->id;
+                                                }
+
+                                                $new_caballo_subastado->save();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         return response()->json(
                             [
                                 'Status_Code' => '201',
