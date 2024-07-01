@@ -167,7 +167,27 @@ class CaballoController extends Controller{
                         //Si el caballo tiene subasta, se elimina la subasta y se devuelve el dinero
                         if($caballo_subastado != null){
 
-                            devolucion($caballo_subastado, 1);
+                            //Restamos el valor subastado del caballo al total de la subasta
+                            $subasta = Subasta::where('id', '=', $caballo_subastado->subasta_id)
+                            ->where('activa', '=', 1)
+                            ->first();
+
+                            $subasta->total = $subasta->total - $caballo_subastado->$monto_subastado;
+                            $porcentaje_resta = round((($subasta->total * $subasta->porcentaje) / 100), 2);
+                            $subasta->premio = round(($subasta->total - $porcentaje_resta), 2);
+                            $subasta->save();
+
+                            //Se busca el Usuario para devolver el dinero
+                            $user_consultado = User::where('id', $caballo_subastado->user_id)->first();
+
+                            if($user_consultado != null){
+
+                                $user_consultado->saldo += $caballo_subastado->$monto_subastado;
+                                $user_consultado->save();
+                            }
+
+                            $caballo_subastado->monto_subastado = 0;
+                            $caballo_subastado->save();
                         }
 
                         return response()->json(
@@ -251,7 +271,28 @@ class CaballoController extends Controller{
                         //Si el caballo tiene subasta, se elimina la subasta y se devuelve el dinero
                         if($caballo_subastado != null){
 
-                            devolucion($caballo_subastado, 2);
+                            //Restamos el valor subastado del caballo al total de la subasta
+                            $subasta = Subasta::where('id', '=', $caballo_subastado->subasta_id)
+                            ->where('activa', '=', 1)
+                            ->first();
+
+                            $subasta->total = $subasta->total - $caballo_subastado->$monto_subastado;
+                            $porcentaje_resta = round((($subasta->total * $subasta->porcentaje) / 100), 2);
+                            $subasta->premio = round(($subasta->total - $porcentaje_resta), 2);
+                            $subasta->save();
+
+                            //Se busca el Usuario para devolver el dinero
+                            $user_consultado = User::where('id', $caballo_subastado->user_id)->first();
+
+                            if($user_consultado != null){
+
+                                $user_consultado->saldo += $caballo_subastado->$monto_subastado;
+                                $user_consultado->save();
+                            }
+
+                            $caballo_subastado->monto_subastado = 0;                            
+                            $caballo_subastado->borrado = 1;
+                            $caballo_subastado->save();
                         }
                     }
                 }
@@ -322,37 +363,37 @@ class CaballoController extends Controller{
         }
     }
 
-    //Borrar un caballo. Operacion = 1, viene del Borrar un caballo. Operacion = 2, viene de un Retiro.
-    public function devolucion(Caballo_subastado $caballo_subastado, $operacion){
+    // //Borrar un caballo. Operacion = 1, viene del Borrar un caballo. Operacion = 2, viene de un Retiro.
+    // public function devolucion(Caballo_subastado $caballo_subastado, $operacion){
 
-        //Restamos el valor subastado del caballo al total de la subasta
-        $subasta = Subasta::where('id', '=', $caballo_subastado->subasta_id)
-                ->where('activa', '=', 1)
-                ->first();
+    //     //Restamos el valor subastado del caballo al total de la subasta
+    //     $subasta = Subasta::where('id', '=', $caballo_subastado->subasta_id)
+    //             ->where('activa', '=', 1)
+    //             ->first();
 
-        $subasta->total = $subasta->total - $caballo_subastado->$monto_subastado;
-        $porcentaje_resta = round((($subasta->total * $subasta->porcentaje) / 100), 2);
-        $subasta->premio = round(($subasta->total - $porcentaje_resta), 2);
+    //     $subasta->total = $subasta->total - $caballo_subastado->$monto_subastado;
+    //     $porcentaje_resta = round((($subasta->total * $subasta->porcentaje) / 100), 2);
+    //     $subasta->premio = round(($subasta->total - $porcentaje_resta), 2);
 
-        $subasta->save();
+    //     $subasta->save();
 
 
-        //Se busca el Usuario para devolver el dinero
-        $user_consultado = User::where('id', $caballo_subastado->user_id)->first();
+    //     //Se busca el Usuario para devolver el dinero
+    //     $user_consultado = User::where('id', $caballo_subastado->user_id)->first();
 
-        if($user_consultado != null){
+    //     if($user_consultado != null){
 
-            $user_consultado->saldo += $caballo_subastado->$monto_subastado;
-            $user_consultado->save();
-        }
+    //         $user_consultado->saldo += $caballo_subastado->$monto_subastado;
+    //         $user_consultado->save();
+    //     }
 
-        $caballo_subastado->monto_subastado = 0;
+    //     $caballo_subastado->monto_subastado = 0;
 
-        //Caballo Retirado
-        if($operacion == 2){
-            $caballo_subastado->borrado = 1;
-        }
+    //     //Caballo Retirado
+    //     if($operacion == 2){
+    //         $caballo_subastado->borrado = 1;
+    //     }
 
-        $caballo_subastado->save();
-    }
+    //     $caballo_subastado->save();
+    // }
 }
