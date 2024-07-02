@@ -156,6 +156,19 @@ class CarreraController extends Controller{
                     $data->borrada = 1;
 
                     if($data->save()){
+
+                        //Se Borran los caballos de la carrera
+                        $updateCaballo = Caballo::where('carrera_id',$id)
+                        ->update(['borrada' => 1]);
+
+                        //Se Borran la carrera en subasta
+                        $updateSubasta = Subasta::where('carrera_id',$id)
+                        ->update(['activa' => 0]);
+
+                        //Se Borran los caballos subastados de la carrera
+                        $updateCaballoSubastados = Caballo_subastado::where('subasta_id',$updateSubasta->id)
+                        ->update(['borrado' => 1]);
+
                         return response()->json(
                             [
                                 'Status_Code' => '200',

@@ -221,6 +221,22 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
 
 //--------------------------------------Caballos------------------------------//
 
+//--------------------------------------Subasta------------------------------//
+
+    //Guardar un caballo subastado -> http://localhost/apitusubusta/public/subasta
+    $router->post('/subasta', 'SubastaController@store');
+
+    // //Obtener un caballo especifico -> http://localhost/apitusubusta/public/caballo/{id}
+    // $router->get('/caballo/show/{id}', 'CaballoController@show');
+
+    // //Borrar un Caballo -> http://localhost/apitusubusta/public/caballo/{id}
+    // $router->delete('/caballo/{id}', 'CaballoController@delete');
+
+    // //Actualizar un Caballo -> http://localhost/apitusubusta/public/caballo/{id}
+    // $router->put('/caballo/{id}', 'CaballoController@update');
+
+//--------------------------------------Subasta------------------------------//
+
 });
 //--------------------------------------Fin Rutas que utilizan Token------------------------------//
 

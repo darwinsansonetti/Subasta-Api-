@@ -172,7 +172,7 @@ class CaballoController extends Controller{
                             ->where('activa', '=', 1)
                             ->first();
 
-                            $subasta->total = $subasta->total - $caballo_subastado->$monto_subastado;
+                            $subasta->total = $subasta->total - $caballo_subastado->monto_subastado;
                             $porcentaje_resta = round((($subasta->total * $subasta->porcentaje) / 100), 2);
                             $subasta->premio = round(($subasta->total - $porcentaje_resta), 2);
                             $subasta->save();

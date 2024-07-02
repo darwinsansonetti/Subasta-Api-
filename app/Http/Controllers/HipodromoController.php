@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Hipodromo;
 use App\Models\Caballo;
+use App\Models\Caballo_subastado;
+use App\Models\Subasta;
 use App\Models\Carrera;
 use Illuminate\Support\Facades\DB;
 
@@ -132,11 +134,41 @@ class HipodromoController extends Controller{
                     $data->activo = 0;
 
                     if($data->save()){
+
+                        //Obtengo las carreras del Hipodromo a Eliminar
+                        $array_carreras = Carrera::Where('hipodromo_id',$id)
+                        ->where('borrada', '=', 0)
+                        ->select('carrera.id')
+                        ->pluck('id');
+
+                        if(count($array_carreras) > 0){
+
+                            //Se Borran los caballos de las carreras
+                            $updateCaballo = Caballo::whereIn('carrera_id',$array_carreras)
+                                            ->update(['borrado' => 1]);
+                            
+                            //Se Borran las carreras del hipodromo
+                            DB::table('carrera')->where('hipodromo_id',$id)->update(['borrada'=>1]);
+
+                            //Se buscan los caballos subastados para Borrarlos
+                            $array_subasta = Subasta::whereIn('carrera_id',$array_carreras)
+                            ->select('subasta.id')
+                            ->pluck('id');
+
+                            //Se Borran los caballos subastados de las carreras
+                            $updateCaballoSubastados = Caballo_subastado::whereIn('subasta_id',$array_subasta)
+                                            ->update(['borrado' => 1]);
+
+                            //Se Borran las carreras en subasta para ese hipodromo
+                            $updateSubasta = Subasta::whereIn('carrera_id',$array_carreras)
+                                            ->update(['activa' => 0]);
+                        }
+
                         return response()->json(
                             [
                                 'Status_Code' => '200',
                                 'Success'     => 'True',
-                                'Response'    => ['Hipodormo' => $data],
+                                'Response'    => ['Hipodromo' => $data],
                                 'Message'     => "Hipodromo borrada exitosamente",
                             ], 200
                         );  

@@ -6,148 +6,175 @@ use App\Models\Hipodromo;
 use App\Models\Caballo;
 use App\Models\Carrera;
 use App\Models\Subasta;
+use App\Models\Caballo_subastado;
+use App\Models\Rol;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class SubastaController extends Controller{
 
-// //Guardar una Subasta
-// public function store(Request $request){
+    //Guardar una Subasta
+    public function store(Request $request){
 
-//     $new_subasta = new Subasta();
+        $validator = "";
+        $indice = 0;
+        $id_subasta = 0;
 
-//     if(auth()->user()->rol_id == 1){
+        foreach($request->input('subasta') as $valor_subasta)
+        {
+            $indice++;
+            $id_subasta = $valor_subasta['subasta_id'];
+            $new_subasta = new Subasta;
+            
+            if(is_null($valor_subasta['subasta_id'])){ 
+                $validator = "ID de la Subasta requerido. Registro $indice";
+            }else{
+                $subasta = Subasta::Where('id', '=', $valor_subasta['subasta_id'])
+                                    ->where('activa', '=', 1)                            
+                                    ->first();
 
-//         $validator = "";
+                if($subasta == null){
+                    $validator = "No existe el ID de la Subasta. Registro $indice.";
+                }
+            }
 
-//         if(!$request->input('carrera_id')){
-//             $validator = "ID de la carrera requerido";
-//         }else{
+            if(is_null($valor_subasta['caballo_subastado_id'])){ 
+                $validator = ($validator == "") ? $validator . "ID del Caballo Subastado requerido. Registro $indice." : $validator . " - ID del Caballo Subastado requerido. Registro $indice.";
+            }else{
+                $caballo_subastado = Caballo_subastado::Where('id', '=', $valor_subasta['caballo_subastado_id'])
+                                    ->where('borrado', '=', 0)                            
+                                    ->first();
 
-//             //Se obtiene el ID de la Jugada Subasta
-//             $tipo_jugada = Tipo_apuesta::Where('activo', '=', 1)->Where('name', '=', "Subasta")->first();
+                if($caballo_subastado == null){
+                    $validator = ($validator == "") ? $validator . "No existe el Caballo para la subasta. Registro $indice." : $validator . " - No existe el Caballo para la subasta. Registro $indice.";
+                }
+            }
 
-//             if($tipo_jugada != null){
-//                 //Consultar si el Hipodromo al cual pertenece la carrera, tiene la jugada de subastas Activa
-//                 $jugadas = DB::table('jugadas')
-//                 ->where('hipodromo_id', '=', $request->input('hipodromo_id'))
-//                 ->where('tipo_apuesta_id', '=', $tipo_jugada->id)
-//                 ->where('activa', '=', 1)
-//                 ->first();
+            if(is_null($valor_subasta['user_id'])){ 
+                $validator = ($validator == "") ? $validator . "ID del Usuario requerido. Registro $indice." : $validator . " - ID del Usuario requerido. Registro $indice.";
+            }else{
+                $user_consultado = User::where('id', $valor_subasta['user_id'])->first();
 
-//                 //El hipodromo tiene las Subastas activas. Se crea el registro de subasta
-//                 if($jugadas != null){
-//                     $new_subasta = new Subasta;
+                if($user_consultado == null){
+                    $validator = ($validator == "") ? $validator . "No existe el Usuario. Registro $indice." : $validator . " - No existe el Usuario. Registro $indice.";
+                }
+            }
 
-//                     $new_subasta->carrera_id = $new_carrera->id;
+            if(is_null($valor_subasta['monto'])){ 
+                $validator = "Monto requerido. Registro $indice.";
+            }else{
+                if($valor_subasta['monto'] < 1 || ($caballo_subastado != null && $valor_subasta['monto'] <= $caballo_subastado->monto_subastado)){ 
+                    $validator = ($validator == "") ? $validator . "Monto invalido. Registro $indice." : $validator . " - Monto invalido. Registro $indice.";
+                }else{
+                    if($user_consultado->saldo < $valor_subasta['monto']){
+                        $validator = ($validator == "") ? $validator . "Saldo insuficiente. Registro $indice." : $validator . " - Saldo insuficiente. Registro $indice.";
+                    }
+                }
+            }
 
-//                     $new_subasta->save();
-//                 }
-//             }
+            if($validator == ""){
+                //Se ubica el usuario y el monto anterior
+                $user_old = $caballo_subastado->user_id;
+                $monto_old = $caballo_subastado->monto_subastado;
 
+                //Restamos el valor subastado del caballo al total de la subasta y se le suma el nuevo monto
+                $subasta->total = $subasta->total - $caballo_subastado->monto_subastado;
+                $subasta->total += $valor_subasta['monto'];
+                $porcentaje_resta = round((($subasta->total * $subasta->porcentaje) / 100), 2);
+                $subasta->premio = round(($subasta->total - $porcentaje_resta), 2);
+                $subasta->save();
 
+                //Se busca el Usuario para devolver el dinero
+                $user_consultado_old = User::where('id', $user_old)->first();
 
+                if($user_consultado_old != null){
+                    $user_consultado_old->saldo += $monto_old;
+                    $user_consultado_old->save();
+                }
 
+                //Se resta el saldo al nuevo usuario q subasto
+                $user_consultado->saldo -= $valor_subasta['monto'];
+                $user_consultado->save();
 
+                //Se asigna el monto y el usuario al caballo subastado
+                $caballo_subastado->monto_subastado = $valor_subasta['monto'];
+                $caballo_subastado->user_id = $valor_subasta['user_id'];
+                $caballo_subastado->save();
+            }
+        }
 
+        if($validator != ""){
 
-//             $subasta_consultado = Subasta::where('carrera_id',$request->carrera_id)->get();
+            if($indice > 0){
+                $subasta = Subasta::Where('subasta.id', '=', $id_subasta)
+                            ->Join('carrera', 'subasta.carrera_id', '=', 'carrera.id')
+                            ->select('subasta.*', 'carrera.nro_carrera', 'carrera.fecha', 'carrera.distancia', 'carrera.hora')                            
+                            ->first();
 
-//             if(count($subasta_consultado) > 0){
-//                 $validator = ($validator == "") ? $validator . "Ya existe una Subasta para esta Carrera" : $validator . " - Ya existe una Subasta para esta Carrera";
-//             }
-//         }
+                if($subasta != null){
+                    $caballos_subastados = Caballo_subastado::Where('subasta_id', '=', $subasta->id)
+                                ->where('caballo_subastado.borrado', '=', 0)
+                                ->Join('caballo', 'caballo.id', '=', 'caballo_subastado.caballo_id')
+                                ->Join('user', 'user.id', '=', 'caballo_subastado.user_id')
+                                ->select('caballo_subastado.*', 'caballo.nro_caballo', 'caballo.name', 'caballo.retirado', 'user.name as usuario')
+                                ->orderBy('id', 'asc')
+                                ->get();
+    
+                    return response()->json(
+                        [
+                            'Status_Code' => '409',
+                            'Success'     => 'False',
+                            'Response'    => ['Errores' => $validator, 'Subasta' => $subasta, 'Caballos' => $caballos_subastados],
+                            'Message'     => "Existen errores, pero se pudieron haber creado subastas.",
+                        ], 200
+                    );
+                }else{
+                    return response()->json(
+                        [
+                            'Status_Code' => '400',
+                            'Success'     => 'False',
+                            'Response'    => ['Errores' => $validator],
+                            'Message'     => "Existen errores",
+                        ], 400
+                    );
+                }
+            }else{
+                return response()->json(
+                    [
+                        'Status_Code' => '400',
+                        'Success'     => 'False',
+                        'Response'    => ['Errores' => $validator],
+                        'Message'     => "Existen errores",
+                    ], 400
+                ); 
+            }
+        }else{
 
-//         if(!$request->input('fecha')){
-//             $validator = ($validator == "") ? $validator . "Fecha de la carrera requerida" : $validator . " - Fecha de la carrera requerida";
-//         }
+            $subasta = Subasta::Where('subasta.id', '=', $id_subasta)
+                            ->Join('carrera', 'subasta.carrera_id', '=', 'carrera.id')
+                            ->select('subasta.*', 'carrera.nro_carrera', 'carrera.fecha', 'carrera.distancia', 'carrera.hora')                            
+                            ->first();
 
-//         if(!$request->input('distancia')){
-//             $validator = ($validator == "") ? $validator . "Distancia de la carrera requerida" : $validator . " - Distancia de la carrera requerida";
-//         }
+            if($subasta != null){
+                $caballos_subastados = Caballo_subastado::Where('subasta_id', '=', $subasta->id)
+                            ->where('caballo_subastado.borrado', '=', 0)
+                            ->Join('caballo', 'caballo.id', '=', 'caballo_subastado.caballo_id')
+                            ->Join('user', 'user.id', '=', 'caballo_subastado.user_id')
+                            ->select('caballo_subastado.*', 'caballo.nro_caballo', 'caballo.name', 'caballo.retirado', 'user.name as usuario')
+                            ->orderBy('id', 'asc')
+                            ->get();
 
-//         if(!$request->input('hora')){
-//             $validator = ($validator == "") ? $validator . "Hora de la carrera requerida" : $validator . " - Hora de la carrera requerida";
-//         }
-
-//         if(!$request->input('hipodromo_id')){
-//             $validator = ($validator == "") ? $validator . "ID del hipodromo requerido" : $validator . " - ID del hipodromo requerido";
-//         }else{
-//             $hipodromo_consultado = Hipodromo::where('id',$request->hipodromo_id)->get();
-
-//             if(count($hipodromo_consultado) < 1){
-//                 $validator = ($validator == "") ? $validator . "No existe el hipodromo" : $validator . " - No existe el hipodromo";
-//             }
-//         }
-
-//         if($validator != ""){
-//             return response()->json(
-//                 [
-//                     'Status_Code' => '400',
-//                     'Success'     => 'False',
-//                     'Response'    => ['Errores' => $validator],
-//                     'Message'     => "Existen errores",
-//                 ], 400
-//             ); 
-//         }else{
-//             $new_carrera->nro_carrera = $request->nro_carrera;
-//             $new_carrera->fecha = $request->fecha;
-//             $new_carrera->distancia = $request->distancia;
-//             $new_carrera->hora = $request->hora;
-//             $new_carrera->hipodromo_id = $request->hipodromo_id;
-
-//             if($new_carrera->save()){
-
-//                 //Se obtiene el ID de la Jugada Subasta
-//                 $tipo_jugada = Tipo_apuesta::Where('activo', '=', 1)->Where('name', '=', "Subasta")->first();
-
-//                 if($tipo_jugada != null){
-//                     //Consultar si el Hipodromo al cual pertenece la carrera, tiene la jugada de subastas Activa
-//                     $jugadas = DB::table('jugadas')
-//                     ->where('hipodromo_id', '=', $request->input('hipodromo_id'))
-//                     ->where('tipo_apuesta_id', '=', $tipo_jugada->id)
-//                     ->where('activa', '=', 1)
-//                     ->first();
-
-//                     //El hipodromo tiene las Subastas activas. Se crea el registro de subasta
-//                     if($jugadas != null){
-//                         $new_subasta = new Subasta;
-
-//                         $new_subasta->carrera_id = $new_carrera->id;
-
-//                         $new_subasta->save();
-//                     }
-//                 }
-
-//                 return response()->json(
-//                     [
-//                         'Status_Code' => '201',
-//                         'Success'     => 'True',
-//                         'Response'    => ['Carrera' => $new_carrera],
-//                         'Message'     => "Carrera creada exitosamente",
-//                     ], 201
-//                 ); 
-//             }else{
-//                 return response()->json(
-//                     [
-//                         'Status_Code' => '400',
-//                         'Success'     => 'False',
-//                         'Response'    => [],
-//                         'Message'     => "Error al crear la nueva Carrera",
-//                     ], 400
-//                 ); 
-//             }
-//         }
-//     }else{
-//         return response()->json(
-//             [
-//                 'Status_Code' => '403',
-//                 'Success'     => 'False',
-//                 'Response'    => [],
-//                 'Message'     => "No posee los permisos necasarios para acceder.",
-//             ], 403
-//         );
-//     }        
-// }
+                return response()->json(
+                    [
+                        'Status_Code' => '200',
+                        'Success'     => 'True',
+                        'Response'    => ['Subasta' => $subasta, 'Caballos' => $caballos_subastados],
+                        'Message'     => "Subastas asignadas exitosamente",
+                    ], 200
+                );
+            }
+        }
+    }
 
     // //Obtiene todos los Hipodromos registrados
     // public function index($status){
