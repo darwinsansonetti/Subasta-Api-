@@ -9,6 +9,9 @@ use App\Models\Subasta;
 use App\Models\Caballo_subastado;
 use App\Models\Rol;
 use App\Models\User;
+use App\Models\Ticket;
+use App\Models\Tipo_transaccion;
+use App\Models\Transaccion;
 use Illuminate\Support\Facades\DB;
 
 class SubastaController extends Controller{
@@ -72,10 +75,23 @@ class SubastaController extends Controller{
                 }
             }
 
-            if($validator == ""){
+            if($validator == ""){   
+
                 //Se ubica el usuario y el monto anterior
                 $user_old = $caballo_subastado->user_id;
-                $monto_old = $caballo_subastado->monto_subastado;
+                $monto_old = $caballo_subastado->monto_subastado;             
+
+                //Se busca el ID de la Jugada Subasta
+                $tipo_jugada = Tipo_apuesta::Where('activo', '=', 1)->Where('name', '=', "Subasta")->first();
+
+                //Se desactiva el Ticket para el Usuario anterior
+                $ticket_old = Ticket::Where('tipo_apuesta_id', '=', $tipo_jugada->id)
+                ->where('caballo_id', '=', $caballo_subastado->caballo_id)
+                ->where('user_id', '=', $user_old)
+                ->update([
+                    'activo' => 0,
+                    'observacion' => "Jugada de Subasta Reembolsada"
+                ]);
 
                 //Restamos el valor subastado del caballo al total de la subasta y se le suma el nuevo monto
                 $subasta->total = $subasta->total - $caballo_subastado->monto_subastado;
@@ -100,6 +116,24 @@ class SubastaController extends Controller{
                 $caballo_subastado->monto_subastado = $valor_subasta['monto'];
                 $caballo_subastado->user_id = $valor_subasta['user_id'];
                 $caballo_subastado->save();
+
+                //Se crea un Ticket por la Jugada de Subasta
+                $new_ticket = new Ticket;
+                $new_ticket->fecha_creacion = date("Y-m-d H:i:s"); // 2001-03-10 17:16:18
+                $new_ticket->monto = $valor_subasta['monto'];
+                $new_ticket->tipo_apuesta_id = $tipo_jugada->id;
+                $new_ticket->caballo_id = $caballo_subastado->caballo_id;
+                $new_ticket->user_id = $user_consultado->id;
+                $new_ticket->save();
+
+                //Se crea una Transaccion para el usuario
+                $new_transaccion = new Transaccion;
+                $new_transaccion->monto = $valor_subasta['monto'];
+                $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Jugada Subasta")->first();
+                $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                $new_transaccion->pivot_id_jugada = Ticket::latest('id')->first()->id;
+                $new_transaccion->observacion = "Jugada de Subasta";
+                $new_transaccion->save();
             }
         }
 

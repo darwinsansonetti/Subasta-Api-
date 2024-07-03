@@ -203,6 +203,9 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     //Obtener todos los caballos de una carrera subastada -> http://localhost/apitusubusta/public/carreras/caballo/subasta/{id}
     $router->get('/carreras/caballo/subasta/{id}', 'CarreraController@show_subasta');
 
+    //Confirmar y pagar una Carrera especifica -> http://localhost/apitusubusta/public/carreras/confirm/{id}
+    $router->put('/carreras/confirm/{id}', 'CarreraController@confirm');
+
 //--------------------------------------Carreras------------------------------//
 
 //--------------------------------------Caballos------------------------------//
@@ -225,15 +228,6 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
 
     //Guardar un caballo subastado -> http://localhost/apitusubusta/public/subasta
     $router->post('/subasta', 'SubastaController@store');
-
-    // //Obtener un caballo especifico -> http://localhost/apitusubusta/public/caballo/{id}
-    // $router->get('/caballo/show/{id}', 'CaballoController@show');
-
-    // //Borrar un Caballo -> http://localhost/apitusubusta/public/caballo/{id}
-    // $router->delete('/caballo/{id}', 'CaballoController@delete');
-
-    // //Actualizar un Caballo -> http://localhost/apitusubusta/public/caballo/{id}
-    // $router->put('/caballo/{id}', 'CaballoController@update');
 
 //--------------------------------------Subasta------------------------------//
 

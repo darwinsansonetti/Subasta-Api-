@@ -8,6 +8,8 @@ use App\Models\User;
 // use Illuminate\Hashing\HashManager;
 // use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\Str;
+use App\Models\Tipo_transaccion;
+use App\Models\Transaccion;
 use Illuminate\Support\Facades\Hash;
 
 
@@ -302,6 +304,8 @@ class UserController extends Controller{
     public function saldo(Request $request, $id){
 
         if(auth()->user()->rol_id == 1){
+            $new_transaccion = new Transaccion;
+
             $data = User::where('id',$id)->first();
             $validator = "";
 
@@ -344,6 +348,12 @@ class UserController extends Controller{
                     //Tipo Operacion = 1 DEPOSITO
                     if($request->input('tipo_operacion') == 1){
                         $data->saldo += $request->input('saldo');
+
+                        //Se crea una Transaccion para el usuario, Tipo Deposito
+                        $new_transaccion->monto = $request->input('saldo');
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Deposito")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Deposito de Saldo";
                     }else{
                         //Tipo Operacion = 2 RETIRO
                         if($request->input('tipo_operacion') == 2){
@@ -358,6 +368,12 @@ class UserController extends Controller{
                                 );
                             }else{
                                 $data->saldo -= $request->input('saldo');
+
+                                //Se crea una Transaccion para el usuario, Tipo Retiro
+                                $new_transaccion->monto = $request->input('saldo');
+                                $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Retiro")->first();
+                                $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                                $new_transaccion->observacion = "Retiro de Saldo";
                             }
                         }else{
                             return response()->json(
@@ -372,6 +388,9 @@ class UserController extends Controller{
                     }
         
                     if($data->save()){
+
+                        $new_transaccion->save();
+
                         return response()->json(
                             [
                                 'Status_Code' => '201',

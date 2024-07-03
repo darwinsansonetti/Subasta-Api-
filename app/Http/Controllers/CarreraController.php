@@ -8,6 +8,7 @@ use App\Models\Caballo;
 use App\Models\Tipo_apuesta;
 use App\Models\Jugadas;
 use App\Models\Subasta;
+use App\Models\Transaccion;
 use App\Models\Caballo_subastado;
 use Illuminate\Support\Facades\DB;
 
@@ -323,12 +324,16 @@ class CarreraController extends Controller{
                 $data->activa = 0;
 
                 if($data->save()){
-                    //Tambienb se desactivan todos los caballos de esa Carrera
+                    //Tambien se desactivan todos los caballos de esa Carrera
                     $caballos = Caballo::Where('carrera_id', '=', $id)
                                     ->where('borrado', '=', 0)
                                     ->update([
                                         'activo' => 0
                                     ]);
+
+                    //Se desactiva la Subasta de esa Carrera si existe
+                    $updateSubasta = Subasta::where('carrera_id',$id)
+                    ->update(['activa' => 0]);
 
                     return response()->json(
                         [
@@ -529,6 +534,119 @@ class CarreraController extends Controller{
                     'Message'     => "No posee los permisos necasarios para acceder.",
                 ], 403
             );
+        }
+    }
+
+    //Confirmar y pagar una Carrera especifico.
+    public function confirm($id){
+
+        if(auth()->user()->rol_id == 1){
+
+            $data = Carrera::where('id',$id)->first();
+
+            if($data != null){
+
+                if($data->confirmado == 1){
+                    //Se buscan los Caballos que hayan llegado en el 1er Lugar
+                    $caballos_confirmados = Caballo::where('carrera_id',$id)
+                    ->where('puesto_llegada', '=', 1)
+                    ->where('borrado', '=', 0)
+                    ->select('caballo.id')
+                    ->pluck('id');
+
+                    //Si existen Caballos con Puesto de llegada es porq ya se CONFIRMO LA CARRERA
+                    if(count($array_carreras) > 0){
+
+                        //Se busca si la Carrera tiene Jugada de Subasta Activa
+                        //Se obtiene el ID de la Jugada Subasta
+                        $tipo_subasta = Tipo_apuesta::Where('activo', '=', 1)->Where('name', '=', "Subasta")->first();
+
+                        if($tipo_subasta != null){
+
+                            $jugada_hipodromo = Jugadas::Where('activa', '=', 1)
+                            ->Where('tipo_apuesta_id', '=', $tipo_subasta->id)
+                            ->Where('hipodromo_id', '=', $data->hipodromo_id)
+                            ->first();
+                            
+                            //Tiene Subasta ACTIVA, se premia la Subasta
+                            if($jugada_hipodromo != null){
+
+                                //Se busca la Subasta y se divide el premio total entre la cantidad de ganadores
+                                //Esto se hace por si hay empate
+                                $subasta_premiar = Subasta::where('carrera_id', '=', $id)
+                                ->where('activa', '=', 1)
+                                ->first();
+
+                                $premio = ($subasta_premiar->premio / count($array_carreras));
+
+                                //Este array contiene los ID de el/los caballos ganadores de una carrera
+                                foreach ($caballos_confirmados as $id_Caballo) {
+                                    //Se obtiene el registro de la Subasta para buscar el ganador de dicha Subasta
+                                    $caballo_subastado = Caballo_subastado::where('caballo_id', '=', $id)
+                                    ->where('borrado', '=', 0)
+                                    ->first();
+
+                                    //Se busca el Usuario para ABONARLE el dinero de la Substa
+                                    $user_ganador = User::where('id', $caballo_subastado->user_id)->first();
+
+                                    if($user_ganador != null){
+
+                                        $user_ganador->saldo += $premio;
+                                        $user_ganador->save();
+                                    }
+
+                                    //Se crea una Transaccion para el usuario ganador de la Subasta
+                                    $new_transaccion = new Transaccion;
+                                    $new_transaccion->monto = $premio;
+                                    $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Jugada Subasta")->first();
+                                    $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                                    $new_transaccion->observacion = "Ganador de la Subasta";
+                                    $new_transaccion->save();
+                                }
+                            }
+                        }
+
+                        $data->confirmado = 1;
+                        $data->save();
+
+                        return response()->json(
+                            [
+                                'Status_Code' => '200',
+                                'Success'     => 'True',
+                                'Response'    => [],
+                                'Message'     => "Carrera CONFIRMADA y PAGADA exitosamente.",
+                            ], 200
+                        );
+                    }else{
+                        return response()->json(
+                            [
+                                'Status_Code' => '400',
+                                'Success'     => 'False',
+                                'Response'    => [],
+                                'Message'     => "Carrera sin CONFIRMAR",
+                            ], 400
+                        );
+                    }
+                }else{
+                    return response()->json(
+                        [
+                            'Status_Code' => '400',
+                            'Success'     => 'False',
+                            'Response'    => [],
+                            'Message'     => "La Carrera se encuentra CONFIRMADA",
+                        ], 400
+                    );
+                }                          
+            }else{
+                return response()->json(
+                    [
+                        'Status_Code' => '404',
+                        'Success'     => 'False',
+                        'Response'    => [],
+                        'Message'     => "Carrera no encontrada",
+                    ], 404
+                ); 
+            } 
         }
     }
 }

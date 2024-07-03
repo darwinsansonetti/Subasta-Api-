@@ -7,7 +7,7 @@ class Transaccion extends Model{
     protected $table = "transaccion";
 
     protected $fillable = [
-        'monto', 'tipo_transaccion_id', 'pivot_id_jugada',
+        'monto', 'tipo_transaccion_id', 'pivot_id_jugada', 'observacion',
     ];
 
     // public $timestamps = false;

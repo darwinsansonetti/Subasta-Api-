@@ -9,6 +9,8 @@ use App\Models\Subasta;
 use App\Models\Caballo_subastado;
 use App\Models\User;
 use App\Models\Rol;
+use App\Models\Tipo_transaccion;
+use App\Models\Transaccion;
 use Illuminate\Support\Facades\DB;
 
 class CaballoController extends Controller{
@@ -289,6 +291,13 @@ class CaballoController extends Controller{
                                 $user_consultado->saldo += $caballo_subastado->$monto_subastado;
                                 $user_consultado->save();
                             }
+
+                            //Se crea una Transaccion para el usuario, Tipo Reembolso
+                            $new_transaccion->monto = $caballo_subastado->$monto_subastado;
+                            $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Reembolso")->first();
+                            $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                            $new_transaccion->observacion = "Reembolso de Saldo por retiro del Ejemplar";
+                            $new_transaccion->save();
 
                             $caballo_subastado->monto_subastado = 0;                            
                             $caballo_subastado->borrado = 1;
