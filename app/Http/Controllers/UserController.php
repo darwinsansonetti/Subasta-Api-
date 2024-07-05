@@ -354,6 +354,8 @@ class UserController extends Controller{
                         $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Deposito")->first();
                         $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
                         $new_transaccion->observacion = "Deposito de Saldo";
+                        $new_transaccion->fecha_creacion = date("Y-m-d"); // 2001-03-10
+                        $new_transaccion->user_id = $id;
                     }else{
                         //Tipo Operacion = 2 RETIRO
                         if($request->input('tipo_operacion') == 2){
@@ -374,6 +376,8 @@ class UserController extends Controller{
                                 $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Retiro")->first();
                                 $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
                                 $new_transaccion->observacion = "Retiro de Saldo";
+                                $new_transaccion->fecha_creacion = date("Y-m-d"); // 2001-03-10
+                                $new_transaccion->user_id = $id;
                             }
                         }else{
                             return response()->json(

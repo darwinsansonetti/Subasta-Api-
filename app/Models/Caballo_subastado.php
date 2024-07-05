@@ -7,7 +7,7 @@ class Caballo_subastado extends Model{
     protected $table = "caballo_subastado";
 
     protected $fillable = [
-        'monto_subastado', 'subasta_id', 'caballo_id', 'user_id', 'borrado',
+        'monto_subastado', 'subasta_id', 'caballo_id', 'puesto_llegada', 'user_id', 'borrado',
     ];
 
     // public $timestamps = false;

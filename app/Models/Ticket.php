@@ -7,7 +7,7 @@ class Ticket extends Model{
     protected $table = "ticket";
 
     protected $fillable = [
-        'fecha_creacion', 'monto', 'activo', 'tipo_apuesta_id', 'caballo_id', 'user_id',
+        'fecha_creacion', 'monto', 'activo', 'tipo_apuesta_id', 'caballo_id', 'user_id', 'observacion',
     ];
 
     // public $timestamps = false;

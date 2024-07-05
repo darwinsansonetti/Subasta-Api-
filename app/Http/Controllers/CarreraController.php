@@ -542,7 +542,7 @@ class CarreraController extends Controller{
 
         if(auth()->user()->rol_id == 1){
 
-            $data = Carrera::where('id',$id)->first();
+            $data = Carrera::where('id',$id)->where('borrada', 0)->first();
 
             if($data != null){
 
@@ -557,54 +557,56 @@ class CarreraController extends Controller{
                     //Si existen Caballos con Puesto de llegada es porq ya se CONFIRMO LA CARRERA
                     if(count($array_carreras) > 0){
 
-                        //Se busca si la Carrera tiene Jugada de Subasta Activa
-                        //Se obtiene el ID de la Jugada Subasta
-                        $tipo_subasta = Tipo_apuesta::Where('activo', '=', 1)->Where('name', '=', "Subasta")->first();
+                        //NO BORRAR YA QUE SE UTILIZARA EN EL FUTURO PARA PAGAR JUGADAS DIFERENTES A LA SUBASTA
+                        // //Se busca si la Carrera tiene Jugada de Subasta Activa
+                        // //Se obtiene el ID de la Jugada Subasta
+                        // $tipo_subasta = Tipo_apuesta::Where('activo', '=', 1)->Where('name', '=', "Subasta")->first();
 
-                        if($tipo_subasta != null){
+                        // if($tipo_subasta != null){
 
-                            $jugada_hipodromo = Jugadas::Where('activa', '=', 1)
-                            ->Where('tipo_apuesta_id', '=', $tipo_subasta->id)
-                            ->Where('hipodromo_id', '=', $data->hipodromo_id)
-                            ->first();
+                        //     $jugada_hipodromo = Jugadas::Where('activa', '=', 1)
+                        //     ->Where('tipo_apuesta_id', '=', $tipo_subasta->id)
+                        //     ->Where('hipodromo_id', '=', $data->hipodromo_id)
+                        //     ->first();
                             
-                            //Tiene Subasta ACTIVA, se premia la Subasta
-                            if($jugada_hipodromo != null){
+                        //     //Tiene Subasta ACTIVA, se premia la Subasta
+                        //     if($jugada_hipodromo != null){
 
-                                //Se busca la Subasta y se divide el premio total entre la cantidad de ganadores
-                                //Esto se hace por si hay empate
-                                $subasta_premiar = Subasta::where('carrera_id', '=', $id)
-                                ->where('activa', '=', 1)
-                                ->first();
+                        //         //Se busca la Subasta y se divide el premio total entre la cantidad de ganadores
+                        //         //Esto se hace por si hay empate
+                        //         $subasta_premiar = Subasta::where('carrera_id', '=', $id)
+                        //         ->where('activa', '=', 1)
+                        //         ->first();
 
-                                $premio = ($subasta_premiar->premio / count($array_carreras));
+                        //         $premio = ($subasta_premiar->premio / count($array_carreras));
 
-                                //Este array contiene los ID de el/los caballos ganadores de una carrera
-                                foreach ($caballos_confirmados as $id_Caballo) {
-                                    //Se obtiene el registro de la Subasta para buscar el ganador de dicha Subasta
-                                    $caballo_subastado = Caballo_subastado::where('caballo_id', '=', $id)
-                                    ->where('borrado', '=', 0)
-                                    ->first();
+                        //         //Este array contiene los ID de el/los caballos ganadores de una carrera
+                        //         foreach ($caballos_confirmados as $id_Caballo) {
+                        //             //Se obtiene el registro de la Subasta para buscar el ganador de dicha Subasta
+                        //             $caballo_subastado = Caballo_subastado::where('caballo_id', '=', $id)
+                        //             ->where('borrado', '=', 0)
+                        //             ->first();
 
-                                    //Se busca el Usuario para ABONARLE el dinero de la Substa
-                                    $user_ganador = User::where('id', $caballo_subastado->user_id)->first();
+                        //             //Se busca el Usuario para ABONARLE el dinero de la Substa
+                        //             $user_ganador = User::where('id', $caballo_subastado->user_id)->first();
 
-                                    if($user_ganador != null){
+                        //             if($user_ganador != null){
 
-                                        $user_ganador->saldo += $premio;
-                                        $user_ganador->save();
-                                    }
+                        //                 $user_ganador->saldo += $premio;
+                        //                 $user_ganador->save();
+                        //             }
 
-                                    //Se crea una Transaccion para el usuario ganador de la Subasta
-                                    $new_transaccion = new Transaccion;
-                                    $new_transaccion->monto = $premio;
-                                    $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Jugada Subasta")->first();
-                                    $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
-                                    $new_transaccion->observacion = "Ganador de la Subasta";
-                                    $new_transaccion->save();
-                                }
-                            }
-                        }
+                        //             //Se crea una Transaccion para el usuario ganador de la Subasta
+                        //             $new_transaccion = new Transaccion;
+                        //             $new_transaccion->monto = $premio;
+                        //             $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Jugada Subasta")->first();
+                        //             $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        //             $new_transaccion->observacion = "Ganador de la Subasta";
+                //                      $new_transaccion->fecha_creacion = date("Y-m-d"); // 2001-03-10
+                //             $new_transaccion->save();
+                        //         }
+                        //     }
+                        // }
 
                         $data->confirmado = 1;
                         $data->save();
@@ -637,6 +639,82 @@ class CarreraController extends Controller{
                         ], 400
                     );
                 }                          
+            }else{
+                return response()->json(
+                    [
+                        'Status_Code' => '404',
+                        'Success'     => 'False',
+                        'Response'    => [],
+                        'Message'     => "Carrera no encontrada",
+                    ], 404
+                ); 
+            } 
+        }
+    }
+
+    //Pagar una Carrera Subastada.
+    public function pagar_subasta($id){
+
+        if(auth()->user()->rol_id == 1){
+
+            $data = Subasta::where('carrera_id',$id)->first();
+
+            if($data != null){
+
+                //Se buscan los Caballos que hayan llegado en el 1er Lugar
+                $caballos_confirmados = Caballo_subastado::where('subasta_id',$data->id)
+                ->where('puesto_llegada', '=', 1)
+                ->where('borrado', '=', 0)
+                ->get();
+
+                //Si existen Caballos con Puesto de llegada es porq ya se CONFIRMO LA CARRERA
+                if(count($array_carreras) > 0){
+
+                    //Se divide el premio total entre la cantidad de ganadores
+                    $premio = ($data->premio / count($array_carreras));
+
+                    //Este array contiene los Registros de el/los caballos ganadores de una carrera subastada
+                    foreach ($caballos_confirmados as $One_caballo_subastado) {
+                        
+                        //Se busca el Usuario para ABONARLE el dinero de la Substa
+                        $user_ganador = User::where('id', $One_caballo_subastado->user_id)->first();
+
+                        if($user_ganador != null){
+
+                            $user_ganador->saldo += $premio;
+                            $user_ganador->save();
+                        }
+
+                        //Se crea una Transaccion para el usuario ganador de la Subasta
+                        $new_transaccion = new Transaccion;
+                        $new_transaccion->monto = $premio;
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Jugada Subasta")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Ganador de la Subasta";
+                        $new_transaccion->fecha_creacion = date("Y-m-d"); // 2001-03-10
+                        $new_transaccion->user_id = $user_ganador->id;
+                        $new_transaccion->save();
+                    }
+
+                    return response()->json(
+                        [
+                            'Status_Code' => '200',
+                            'Success'     => 'True',
+                            'Response'    => [],
+                            'Message'     => "Carrera CONFIRMADA y PAGADA exitosamente.",
+                        ], 200
+                    );
+                }else{
+                    return response()->json(
+                        [
+                            'Status_Code' => '400',
+                            'Success'     => 'False',
+                            'Response'    => [],
+                            'Message'     => "Carrera sin CONFIRMAR",
+                        ], 400
+                    );
+                }
+                                         
             }else{
                 return response()->json(
                     [

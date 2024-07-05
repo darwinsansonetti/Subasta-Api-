@@ -206,6 +206,9 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     //Confirmar y pagar una Carrera especifica -> http://localhost/apitusubusta/public/carreras/confirm/{id}
     $router->put('/carreras/confirm/{id}', 'CarreraController@confirm');
 
+    //Pagar una Carrera Subastada -> http://localhost/apitusubusta/public/carreras/pay/subasta/{id}
+    $router->put('/carreras/pay/subasta/{id}', 'CarreraController@pagar_subasta');
+
 //--------------------------------------Carreras------------------------------//
 
 //--------------------------------------Caballos------------------------------//
@@ -230,6 +233,27 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/subasta', 'SubastaController@store');
 
 //--------------------------------------Subasta------------------------------//
+
+//--------------------------------------Ticket------------------------------//
+
+    //Consultar los Ticket de un Usuario polr fecha -> http://localhost/apitusubusta/public/ticket/show
+    $router->get('/ticket/show', 'TicketController@show');
+
+//--------------------------------------Ticket------------------------------//
+
+//--------------------------------------Caballo Subastado------------------------------//
+
+    //Guardar el puesto de llegada de un Caballo Subastado. Es como pase la Raya -> http://localhost/apitusubusta/public/caballo_subastado/{id}
+    $router->put('/caballo_subastado/{id}', 'CaballosubastadoController@store_subasta');
+
+//--------------------------------------Caballos Subastado------------------------------//
+
+//--------------------------------------Transacciones------------------------------//
+
+    //Consultar las Transacciones de un Usuario por fecha -> http://localhost/apitusubusta/public/transacciones/show
+    $router->get('/transacciones/show', 'TransaccionController@show');
+
+//--------------------------------------Transacciones------------------------------//
 
 });
 //--------------------------------------Fin Rutas que utilizan Token------------------------------//
