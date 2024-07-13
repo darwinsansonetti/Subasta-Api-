@@ -7,6 +7,8 @@ use App\Models\Caballo;
 use App\Models\Caballo_subastado;
 use App\Models\Subasta;
 use App\Models\Carrera;
+use App\Models\Tipo_transaccion;
+use App\Models\Transaccion;
 use Illuminate\Support\Facades\DB;
 
 class HipodromoController extends Controller{
@@ -67,6 +69,15 @@ class HipodromoController extends Controller{
             }
 
             if($new_hipodromo->save()){
+
+                //Se crea una Transaccion para el usuario, Tipo Create
+                $new_transaccion = new Transaccion();
+                $new_transaccion->monto = 0;
+                $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Create")->first();
+                $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                $new_transaccion->observacion = "Creacion del Hipodromo ID " . Hipodromo::latest('id')->first()->id . " - Admin ID " . auth()->user()->id;
+                $new_transaccion->save();
+
                 return response()->json(
                     [
                         'Status_Code' => '201',
@@ -135,6 +146,14 @@ class HipodromoController extends Controller{
 
                     if($data->save()){
 
+                        //Se crea una Transaccion para el usuario, Tipo Delete
+                        $new_transaccion = new Transaccion();
+                        $new_transaccion->monto = 0;
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Delete")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Eliminacion del Hipodromo ID " . $id . " - Admin ID " . auth()->user()->id;
+                        $new_transaccion->save();
+
                         //Obtengo las carreras del Hipodromo a Eliminar
                         $array_carreras = Carrera::Where('hipodromo_id',$id)
                         ->where('borrada', '=', 0)
@@ -162,6 +181,14 @@ class HipodromoController extends Controller{
                             //Se Borran las carreras en subasta para ese hipodromo
                             $updateSubasta = Subasta::whereIn('carrera_id',$array_carreras)
                                             ->update(['activa' => 0]);
+
+                            //Se crea una Transaccion para el usuario, Tipo Delete
+                            $new_transaccion = new Transaccion();
+                            $new_transaccion->monto = 0;
+                            $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Create")->first();
+                            $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                            $new_transaccion->observacion = "Eliminacion automatica de las Subastas y sus caballos - Admin ID " . auth()->user()->id;
+                            $new_transaccion->save();
                         }
 
                         return response()->json(
@@ -248,6 +275,15 @@ class HipodromoController extends Controller{
                 }
 
                 if($data->save()){
+
+                    //Se crea una Transaccion para el usuario, Tipo Update
+                    $new_transaccion = new Transaccion();
+                    $new_transaccion->monto = 0;
+                    $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Update")->first();
+                    $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                    $new_transaccion->observacion = "Actualizacion del hipodromo ID " . $id . " - Admin ID " . auth()->user()->id;
+                    $new_transaccion->save();
+
                     return response()->json(
                         [
                             'Status_Code' => '201',
@@ -308,6 +344,15 @@ class HipodromoController extends Controller{
                     $data->activo = 1;
 
                     if($data->save()){
+
+                        //Se crea una Transaccion para el usuario, Tipo Update
+                        $new_transaccion = new Transaccion();
+                        $new_transaccion->monto = 0;
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Update")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Activacion del hipodromo ID " . $id . " - Admin ID " . auth()->user()->id;
+                        $new_transaccion->save();
+
                         return response()->json(
                             [
                                 'Status_Code' => '201',

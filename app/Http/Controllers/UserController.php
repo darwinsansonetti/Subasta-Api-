@@ -2,11 +2,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-// use Illuminate\Support\Facades\Crypt;
 use App\Models\User;
-// use Illuminate\Support\Facades\Hash;
-// use Illuminate\Hashing\HashManager;
-// use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\Str;
 use App\Models\Tipo_transaccion;
 use App\Models\Transaccion;
@@ -115,6 +111,15 @@ class UserController extends Controller{
             $new_user->rol_id = $request->rol_id;
 
             if($new_user->save()){
+
+                //Se crea una Transaccion para el usuario, Tipo Create
+                $new_transaccion = new Transaccion();
+                $new_transaccion->monto = 0;
+                $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Create")->first();
+                $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                $new_transaccion->observacion = "Creacion de un Usuario por Registro";
+                $new_transaccion->save();
+
                 return response()->json(
                     [
                         'Status_Code' => '201',
@@ -174,6 +179,15 @@ class UserController extends Controller{
                     $data->activo = 0;
 
                     if($data->save()){
+
+                        //Se crea una Transaccion para el usuario, Tipo Delete
+                        $new_transaccion = new Transaccion();
+                        $new_transaccion->monto = 0;
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Delete")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Eliminacion del usuario ID " . $id . " - Admin ID " . auth()->user()->id;
+                        $new_transaccion->save();
+
                         return response()->json(
                             [
                                 'Status_Code' => '201',
@@ -259,6 +273,15 @@ class UserController extends Controller{
                     $data->phone = $request->phone;
         
                     if($data->save()){
+
+                        //Se crea una Transaccion para el usuario, Tipo Update
+                        $new_transaccion = new Transaccion();
+                        $new_transaccion->monto = 0;
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Update")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Actualizacion del usuario ID " . $id . " - Admin ID " . auth()->user()->id;
+                        $new_transaccion->save();
+
                         return response()->json(
                             [
                                 'Status_Code' => '201',
@@ -466,6 +489,15 @@ class UserController extends Controller{
                 $data->activo = 1;
 
                 if($data->save()){
+
+                    //Se crea una Transaccion para el usuario, Tipo Update
+                    $new_transaccion = new Transaccion();
+                    $new_transaccion->monto = 0;
+                    $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Update")->first();
+                    $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                    $new_transaccion->observacion = "Activacion del usuario ID " . $id;
+                    $new_transaccion->save();
+
                     return response()->json(
                         [
                             'Status_Code' => '201',

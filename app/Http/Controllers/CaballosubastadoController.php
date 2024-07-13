@@ -31,6 +31,14 @@ class CaballosubastadoController extends Controller{
 
                 if($data->save()){
 
+                    //Se crea una Transaccion para el usuario, Tipo Update
+                    $new_transaccion = new Transaccion();
+                    $new_transaccion->monto = 0;
+                    $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Update")->first();
+                    $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                    $new_transaccion->observacion = "Actualizacion del puesto de llegada del caballo subastado ID " . $id . " - Admin ID " . auth()->user()->id;
+                    $new_transaccion->save();
+
                     return response()->json(
                         [
                             'Status_Code' => '201',
@@ -69,7 +77,5 @@ class CaballosubastadoController extends Controller{
                 ], 403
             );
         }
-    }
-
-    
+    }    
 }

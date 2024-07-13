@@ -3,6 +3,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Tipo_apuesta;
+use App\Models\Tipo_transaccion;
+use App\Models\Transaccion;
 
 class TipoApuestaController extends Controller{
 
@@ -62,6 +64,15 @@ class TipoApuestaController extends Controller{
             }
 
             if($new_apuesta->save()){
+
+                //Se crea una Transaccion para el usuario, Tipo Create
+                $new_transaccion = new Transaccion();
+                $new_transaccion->monto = 0;
+                $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Create")->first();
+                $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                $new_transaccion->observacion = "Creacion de un Tipo de apuesta ID " . Tipo_apuesta::latest('id')->first()->id . " - Admin ID " . auth()->user()->id;
+                $new_transaccion->save();
+
                 return response()->json(
                     [
                         'Status_Code' => '201',
@@ -129,6 +140,15 @@ class TipoApuestaController extends Controller{
                     $data->activo = 0;
 
                     if($data->save()){
+
+                        //Se crea una Transaccion para el usuario, Tipo Delete
+                        $new_transaccion = new Transaccion();
+                        $new_transaccion->monto = 0;
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Delete")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Eliminacion del tipo de apuesta ID " . $id . " - Admin ID " . auth()->user()->id;
+                        $new_transaccion->save();
+
                         return response()->json(
                             [
                                 'Status_Code' => '200',
@@ -215,6 +235,15 @@ class TipoApuestaController extends Controller{
                 }
 
                 if($data->save()){
+
+                    //Se crea una Transaccion para el usuario, Tipo Update
+                    $new_transaccion = new Transaccion();
+                    $new_transaccion->monto = 0;
+                    $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Update")->first();
+                    $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                    $new_transaccion->observacion = "Actualziacion del tipo de apuesta ID " . $id . " - Admin ID " . auth()->user()->id;
+                    $new_transaccion->save();
+
                     return response()->json(
                         [
                             'Status_Code' => '201',

@@ -63,6 +63,14 @@ class CaballoController extends Controller{
     
                 if($new_caballo->save()){
 
+                    //Se crea una Transaccion para el usuario, Tipo Create
+                    $new_transaccion = new Transaccion();
+                    $new_transaccion->monto = 0;
+                    $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Create")->first();
+                    $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                    $new_transaccion->observacion = "Creacion del caballo ID " . Caballo::latest('id')->first()->id . " - Admin ID " . auth()->user()->id;
+                    $new_transaccion->save();
+
                     //Si la Carrera tiene Subasta, se incrementa el total
                     $subasta = Subasta::where('carrera_id', '=', $request->carrera_id)
                                     ->where('activa', '=', 1)
@@ -90,6 +98,14 @@ class CaballoController extends Controller{
                         }
 
                         $new_caballo_subastado->save();
+
+                        //Se crea una Transaccion para el usuario, Tipo Create
+                        $new_transaccion = new Transaccion();
+                        $new_transaccion->monto = 0;
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Create")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Creacion automatica del caballo subastado ID " . Caballo_subastado::latest('id')->first()->id . " - Admin ID " . auth()->user()->id;
+                        $new_transaccion->save();
                     }
 
                     return response()->json(
@@ -161,6 +177,14 @@ class CaballoController extends Controller{
 
                     if($data->save()){
 
+                        //Se crea una Transaccion para el usuario, Tipo Delete
+                        $new_transaccion = new Transaccion();
+                        $new_transaccion->monto = 0;
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Delete")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Eliminacion del caballo ID " . $id . " - Admin ID " . auth()->user()->id;
+                        $new_transaccion->save();
+
                         //Se verifica si el caballo tiene Subasta
                         $caballo_subastado = Caballo_subastado::where('caballo_id', '=', $id)
                         ->where('borrado', '=', 0)
@@ -190,6 +214,14 @@ class CaballoController extends Controller{
 
                             $caballo_subastado->monto_subastado = 0;
                             $caballo_subastado->save();
+
+                            //Se crea una Transaccion para el usuario, Tipo Create
+                            $new_transaccion = new Transaccion();
+                            $new_transaccion->monto = 0;
+                            $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Reembolso")->first();
+                            $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                            $new_transaccion->observacion = "Reembolso automatico del caballo subastado ID " . $caballo_subastado->id . " - del Admin ID " . auth()->user()->id . " - al User ID " . $caballo_subastado->user_id;
+                            $new_transaccion->save();
                         }
 
                         return response()->json(
@@ -332,6 +364,16 @@ class CaballoController extends Controller{
                 }
 
                 if($data->save()){
+
+                    //Se crea una Transaccion para el usuario, Tipo Update
+                    $new_transaccion = new Transaccion();
+                    $new_transaccion->monto = 0;
+                    $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Update")->first();
+                    $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                    $new_transaccion->observacion = "Actualizacion del caballo ID " . $id . " - Admin ID " . auth()->user()->id;
+                    $new_transaccion->save();
+
+
                     return response()->json(
                         [
                             'Status_Code' => '201',
@@ -371,38 +413,4 @@ class CaballoController extends Controller{
             );
         }
     }
-
-    // //Borrar un caballo. Operacion = 1, viene del Borrar un caballo. Operacion = 2, viene de un Retiro.
-    // public function devolucion(Caballo_subastado $caballo_subastado, $operacion){
-
-    //     //Restamos el valor subastado del caballo al total de la subasta
-    //     $subasta = Subasta::where('id', '=', $caballo_subastado->subasta_id)
-    //             ->where('activa', '=', 1)
-    //             ->first();
-
-    //     $subasta->total = $subasta->total - $caballo_subastado->$monto_subastado;
-    //     $porcentaje_resta = round((($subasta->total * $subasta->porcentaje) / 100), 2);
-    //     $subasta->premio = round(($subasta->total - $porcentaje_resta), 2);
-
-    //     $subasta->save();
-
-
-    //     //Se busca el Usuario para devolver el dinero
-    //     $user_consultado = User::where('id', $caballo_subastado->user_id)->first();
-
-    //     if($user_consultado != null){
-
-    //         $user_consultado->saldo += $caballo_subastado->$monto_subastado;
-    //         $user_consultado->save();
-    //     }
-
-    //     $caballo_subastado->monto_subastado = 0;
-
-    //     //Caballo Retirado
-    //     if($operacion == 2){
-    //         $caballo_subastado->borrado = 1;
-    //     }
-
-    //     $caballo_subastado->save();
-    // }
 }

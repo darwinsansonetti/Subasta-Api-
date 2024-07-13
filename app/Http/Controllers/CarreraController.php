@@ -9,6 +9,7 @@ use App\Models\Tipo_apuesta;
 use App\Models\Jugadas;
 use App\Models\Subasta;
 use App\Models\Transaccion;
+use App\Models\Tipo_transaccion;
 use App\Models\Caballo_subastado;
 use Illuminate\Support\Facades\DB;
 
@@ -67,6 +68,14 @@ class CarreraController extends Controller{
     
                 if($new_carrera->save()){
 
+                    //Se crea una Transaccion para el usuario, Tipo Create
+                    $new_transaccion = new Transaccion();
+                    $new_transaccion->monto = 0;
+                    $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Create")->first();
+                    $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                    $new_transaccion->observacion = "Creacion de la carrera ID " . Carrera::latest('id')->first()->id . " - Admin ID " . auth()->user()->id;
+                    $new_transaccion->save();
+                    
                     //Se obtiene el ID de la Jugada Subasta
                     $tipo_jugada = Tipo_apuesta::Where('activo', '=', 1)->Where('name', '=', "Subasta")->first();
 
@@ -85,6 +94,14 @@ class CarreraController extends Controller{
                             $new_subasta->carrera_id = $new_carrera->id;
 
                             $new_subasta->save();
+
+                            //Se crea una Transaccion para el usuario, Tipo Create
+                            $new_transaccion = new Transaccion();
+                            $new_transaccion->monto = 0;
+                            $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Create")->first();
+                            $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                            $new_transaccion->observacion = "Creacion automatica de la subasta ID " . Subasta::latest('id')->first()->id . " - Admin ID " . auth()->user()->id;
+                            $new_transaccion->save();
                         }
                     }
 
@@ -158,6 +175,14 @@ class CarreraController extends Controller{
 
                     if($data->save()){
 
+                        //Se crea una Transaccion para el usuario, Tipo Delete
+                        $new_transaccion = new Transaccion();
+                        $new_transaccion->monto = 0;
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Delete")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Eliminacion de la Carrera ID " . $id . " - Admin ID " . auth()->user()->id;
+                        $new_transaccion->save();
+
                         //Se Borran los caballos de la carrera
                         $updateCaballo = Caballo::where('carrera_id',$id)
                         ->update(['borrada' => 1]);
@@ -169,6 +194,14 @@ class CarreraController extends Controller{
                         //Se Borran los caballos subastados de la carrera
                         $updateCaballoSubastados = Caballo_subastado::where('subasta_id',$updateSubasta->id)
                         ->update(['borrado' => 1]);
+
+                        //Se crea una Transaccion para el usuario, Tipo Delete
+                        $new_transaccion = new Transaccion();
+                        $new_transaccion->monto = 0;
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Delete")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Eliminacion automatica de los Caballos, la subasta y sus caballos de la Carrera ID " . $id . " - Admin ID " . auth()->user()->id;
+                        $new_transaccion->save();
 
                         return response()->json(
                             [
@@ -273,6 +306,15 @@ class CarreraController extends Controller{
                     $data->hipodromo_id = $request->hipodromo_id;
         
                     if($data->save()){
+
+                        //Se crea una Transaccion para el usuario, Tipo Update
+                        $new_transaccion = new Transaccion();
+                        $new_transaccion->monto = 0;
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Update")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Actualizacion de la Carrera ID " . $id . " - Admin ID " . auth()->user()->id;
+                        $new_transaccion->save();
+
                         return response()->json(
                             [
                                 'Status_Code' => '201',
@@ -324,6 +366,15 @@ class CarreraController extends Controller{
                 $data->activa = 0;
 
                 if($data->save()){
+
+                    //Se crea una Transaccion para el usuario, Tipo Update
+                    $new_transaccion = new Transaccion();
+                    $new_transaccion->monto = 0;
+                    $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Update")->first();
+                    $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                    $new_transaccion->observacion = "Desactivacion de la Carrera ID " . $id . " - Admin ID " . auth()->user()->id;
+                    $new_transaccion->save();
+
                     //Tambien se desactivan todos los caballos de esa Carrera
                     $caballos = Caballo::Where('carrera_id', '=', $id)
                                     ->where('borrado', '=', 0)
@@ -334,6 +385,14 @@ class CarreraController extends Controller{
                     //Se desactiva la Subasta de esa Carrera si existe
                     $updateSubasta = Subasta::where('carrera_id',$id)
                     ->update(['activa' => 0]);
+
+                    //Se crea una Transaccion para el usuario, Tipo Update
+                    $new_transaccion = new Transaccion();
+                    $new_transaccion->monto = 0;
+                    $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Update")->first();
+                    $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                    $new_transaccion->observacion = "Desactivacion automatica de los caballos y la subasta de la Carrera ID " . $id . " - Admin ID " . auth()->user()->id;
+                    $new_transaccion->save();
 
                     return response()->json(
                         [
@@ -610,6 +669,14 @@ class CarreraController extends Controller{
 
                         $data->confirmado = 1;
                         $data->save();
+
+                        //Se crea una Transaccion para el usuario, Tipo Update
+                        $new_transaccion = new Transaccion();
+                        $new_transaccion->monto = 0;
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Update")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Confirmacion de la Carrera ID " . $id . " - Admin ID " . auth()->user()->id;
+                        $new_transaccion->save();
 
                         return response()->json(
                             [

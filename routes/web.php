@@ -236,8 +236,11 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
 
 //--------------------------------------Ticket------------------------------//
 
-    //Consultar los Ticket de un Usuario polr fecha -> http://localhost/apitusubusta/public/ticket/show
+    //Consultar los Ticket de un Usuario por fecha -> http://localhost/apitusubusta/public/ticket/show
     $router->get('/ticket/show', 'TicketController@show');
+
+    //Consultar un Ticket desde una Transaccion -> http://localhost/apitusubusta/public/ticket/show_transaccion
+    $router->get('/ticket/show_transaccion', 'TicketController@show_ticket_transaccion');
 
 //--------------------------------------Ticket------------------------------//
 

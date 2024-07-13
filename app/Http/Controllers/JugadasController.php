@@ -11,6 +11,8 @@ use App\Models\Caballo_subastado;
 use App\Models\Rol;
 use App\Models\User;
 use App\Models\Subasta;
+use App\Models\Tipo_transaccion;
+use App\Models\Transaccion;
 use Illuminate\Support\Facades\DB;
 
 class JugadasController extends Controller{
@@ -136,6 +138,14 @@ class JugadasController extends Controller{
                     $new_jugada->tipo_apuesta_id = $request->tipo_apuesta_id;
 
                     if($new_jugada->save()){
+
+                        //Se crea una Transaccion para el usuario, Tipo Create
+                        $new_transaccion = new Transaccion();
+                        $new_transaccion->monto = 0;
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Create")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Creacion del Tipo de jugada ID " . Jugadas::latest('id')->first()->id . " - Admin ID " . auth()->user()->id;
+                        $new_transaccion->save();
 
                         //Si la Jugada es Subasta, se busca si hay carreras activas y se crea la Subasta y los Caballos Subastados
                         $tipo_jugada = Tipo_apuesta::Where('activo', '=', 1)->Where('name', '=', "Subasta")->first();
@@ -290,6 +300,15 @@ class JugadasController extends Controller{
                     $data->activa = 0;
 
                     if($data->save()){
+
+                        //Se crea una Transaccion para el usuario, Tipo Delete
+                        $new_transaccion = new Transaccion();
+                        $new_transaccion->monto = 0;
+                        $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Delete")->first();
+                        $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                        $new_transaccion->observacion = "Eliminacion del tipo de jugada ID " . $id . " - Admin ID " . auth()->user()->id;
+                        $new_transaccion->save();
+
                         return response()->json(
                             [
                                 'Status_Code' => '200',
@@ -359,6 +378,15 @@ class JugadasController extends Controller{
                 $data->activa = 1;
 
                 if($data->save()){
+
+                    //Se crea una Transaccion para el usuario, Tipo Update
+                    $new_transaccion = new Transaccion();
+                    $new_transaccion->monto = 0;
+                    $tipo_transaccion = Tipo_transaccion::Where('activo', '=', 1)->Where('name', '=', "Update")->first();
+                    $new_transaccion->tipo_transaccion_id = $tipo_transaccion->id;
+                    $new_transaccion->observacion = "Activacion de un tipo de jugada ID " . $id . " - Admin ID " . auth()->user()->id;
+                    $new_transaccion->save();
+
                     return response()->json(
                         [
                             'Status_Code' => '201',
